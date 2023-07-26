@@ -13,15 +13,43 @@ def generate_launch_description():
         'config',
         'localization.yaml'],
     )
+    
+    
+      # Start robot localization using an Extended Kalman filter...map->odom transform
+    start_robot_localization_global_cmd = Node(
+    package='robot_localization',
+    executable='ekf_node',
+    name='ekf_filter_node_map',
+    output='screen',
+    parameters=[config_husky_ekf],
+    remappings=[('odometry/filtered', 'odometry/global'),
+                ('/set_pose', '/initialpose')])
+    ld.add_action(start_robot_localization_global_cmd)
 
-    node_ekf = Node(
-        package='robot_localization',
-        executable='ekf_node',
-        name='ekf_node',
-        output='screen',
-        parameters=[config_husky_ekf],
-        )
-    ld.add_action(node_ekf)
+    # Start robot localization using an Extended Kalman filter...odom->base_footprint transform
+    start_robot_localization_local_cmd = Node(
+    package='robot_localization',
+    executable='ekf_node',
+    name='ekf_filter_node_odom',
+    output='screen',
+    parameters=[config_husky_ekf],
+    remappings=[('odometry/filtered', 'odometry/local'),
+                ('/set_pose', '/initialpose')])
+              
+    ld.add_action(start_robot_localization_local_cmd)
+
+    start_navsat_transform_cmd = Node(
+    package='robot_localization',
+    executable='navsat_transform_node',
+    name='navsat_transform',
+    output='screen',
+    parameters=[config_husky_ekf],
+    remappings=[('imu', 'imu/data'),
+                ('gps/fix', 'gnss1/fix'), 
+                ('gps/filtered', 'gps/filtered'),
+                ('odometry/gps', 'odometry/gps'),
+                ('odometry/filtered', 'odometry/global')])
+    ld.add_action(start_navsat_transform_cmd)
 
     primary_imu_enable = EnvironmentVariable('CPR_IMU', default_value='false')
 
